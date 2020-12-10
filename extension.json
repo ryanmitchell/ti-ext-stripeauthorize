@@ -1,0 +1,13 @@
+{
+  "code": "thoughtco.stripeauthorize",
+  "name": "Stripe Authorize",
+  "description": "Change Stripe to Authorize/Capture payments (for use with Notifier)",
+  "version": "v1.0.0",
+  "author": "ryanmitchell",
+  "icon": {
+    "class": "fa fa-funnel-dollar",
+    "backgroundColor": "#111",
+    "color": "#FFF"
+  },
+  "homepage": "https://github.com/thoughtco/ti-ext-printer"
+}
