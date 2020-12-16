@@ -22,11 +22,12 @@ class Extension extends BaseExtension
         });
         
         // stripe payment capture method should be manual
+        // this wont be necessary when stripe authorise + capture is merged to payregister
         Event::listen('payregister.stripe.extendFields', function ($gateway, &$fields, $order, $data) {
             $fields['capture_method'] = 'manual';
         });
         
-        // order accepted through notifier - accept payment
+        // order accepted through notifier extension - accept payment
         Event::listen('thoughtco.notifier.orderAccepted', function ($notifier, $order) {
             
             $order = Orders_model::with(['payment_logs', 'payment_method'])->find($order->order_id);
@@ -57,7 +58,7 @@ class Extension extends BaseExtension
             }
         }); 
         
-        // order rejected through notifier - cancel payment
+        // order rejected through notifier extension - cancel payment
         Event::listen('thoughtco.notifier.orderRejected', function ($notifier, $order) {
             
             $order = Orders_model::with(['payment_logs', 'payment_method'])->find($order->order_id);
