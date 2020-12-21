@@ -4,6 +4,7 @@ namespace Thoughtco\StripeAuthorize;
 
 use Admin\Models\Orders_model;
 use Event;
+use Igniter\Flame\Exception\ApplicationException;
 use Omnipay\Omnipay;
 use System\Classes\BaseExtension;
 use Thoughtco\Notifier\Events\OrderCreated;
@@ -31,66 +32,75 @@ class Extension extends BaseExtension
         Event::listen('thoughtco.notifier.orderAccepted', function ($notifier, $order) {
             
             $order = Orders_model::with(['payment_logs', 'payment_method'])->find($order->order_id);
+            
+            if (!$this->isStripeOrder($order))
+                return;
         
-            // if stripe
-            if (isset($order->payment_method) && $order->payment_method->class_name == 'Igniter\PayRegister\Payments\Stripe')
-            {        
-                $order->payment_logs->each(function($paymentLog) use ($order) {
-                    if (array_get($paymentLog->response, 'status') === 'requires_capture')
-                    {
-                        $intentId = array_get($paymentLog->response, 'id');
+            $intentId = getIntentFromOrder($order);
+
+            $gateway = $this->createGateway($order->payment_method);
                         
-                        $gateway = Omnipay::create('Stripe\PaymentIntents');
-                        $gateway->setApiKey($order->payment_method->transaction_mode != 'live' ? $order->payment_method->test_secret_key : $order->payment_method->live_secret_key);
-                        
-                        $response = $gateway->capture([
-                            'paymentIntentReference' => $intentId,
-                        ])->send();
-                                        
-                        if ($response->isSuccessful()) {
-                            $order->logPaymentAttempt('Payment captured successfully', 1, [], $response->getData());
-                            return;
-                        }
-                
-                        $order->logPaymentAttempt('Payment capture failed -> '.$response->getMessage(), 0, [], $response->getData());
-                    }
-                });
+            $response = $gateway->capture([
+                'paymentIntentReference' => $intentId,
+            ])->send();
+                            
+            if ($response->isSuccessful()) {
+                $order->logPaymentAttempt('Payment captured successfully', 1, [], $response->getData());
+                return;
             }
+    
+            $order->logPaymentAttempt('Payment capture failed -> '.$response->getMessage(), 0, [], $response->getData());
         }); 
         
         // order rejected through notifier extension - cancel payment
         Event::listen('thoughtco.notifier.orderRejected', function ($notifier, $order) {
             
             $order = Orders_model::with(['payment_logs', 'payment_method'])->find($order->order_id);
-        
-            // if stripe
-            if (isset($order->payment_method) && $order->payment_method->class_name == 'Igniter\PayRegister\Payments\Stripe')
-            {            
-                $order->payment_logs->each(function($paymentLog) use ($order) {
-                    if (array_get($paymentLog->response, 'status') === 'requires_capture')
-                    {
-                        $intentId = array_get($paymentLog->response, 'id');
-                        
-                        $gateway = Omnipay::create('Stripe\PaymentIntents');
-                        $gateway->setApiKey($order->payment_method->transaction_mode != 'live' ? $order->payment_method->test_secret_key : $order->payment_method->live_secret_key);
-                        
-                        $response = $gateway->cancel([
-                            'paymentIntentReference' => $intentId,
-                        ])->send();
-                                        
-                        $data = $response->getData();
-                        if (array_get($data, 'status') === 'canceled') {
-                            $order->logPaymentAttempt('Payment cancelled successfully', 1, [], $data);
-                            return;
-                        }
-                
-                        $order->logPaymentAttempt('Payment cancellation failed -> '.$response->getMessage(), 0, [], $data);
-                    }
-                });
             
+            if (!$this->isStripeOrder($order))
+                return;
+                
+            $intentId = getIntentFromOrder($order);
+
+            $gateway = $this->createGateway($order->payment_method);
+                        
+            $response = $gateway->cancel([
+                'paymentIntentReference' => $intentId,
+            ])->send();
+                            
+            $data = $response->getData();
+            if (array_get($data, 'status') === 'canceled') {
+                $order->logPaymentAttempt('Payment cancelled successfully', 1, [], $data);
+                return;
             }
+    
+            $order->logPaymentAttempt('Payment cancellation failed -> '.$response->getMessage(), 0, [], $data);
             
         });                
+    }
+    
+    protected function isStripeOrder($order)
+    {
+        return isset($order->payment_method) && $order->payment_method->class_name == 'Igniter\PayRegister\Payments\Stripe';      
+    }
+    
+    protected function getIntentFromOrder($order)
+    {           
+        foreach ($order->payment_logs as $paymentLog) {
+            if (array_get($paymentLog->response, 'status') === 'requires_capture') {
+                $intentId = array_get($paymentLog->response, 'id');
+                if ($intentId)
+                    return $intentId;
+            }           
+        }
+
+        throw new ApplicationException('Missing Stripe Intent ID');
+    }
+    
+    protected function createGateway($paymentMethod)
+    {
+        $gateway = Omnipay::create('Stripe\PaymentIntents');
+        $gateway->setApiKey($paymentMethod->transaction_mode != 'live' ? $paymentMethod->test_secret_key : $paymentMethod->live_secret_key);
     }
     
 }
