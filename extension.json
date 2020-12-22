@@ -1,7 +1,7 @@
 {
   "code": "thoughtco.stripeauthorize",
   "name": "Stripe Authorize",
-  "description": "Change Stripe to Authorize/Capture payments (for use with Notifier)",
+  "description": "Change Stripe to Authorize/Capture payments (for use with Order Approver)",
   "version": "v1.0.0",
   "author": "ryanmitchell",
   "icon": {

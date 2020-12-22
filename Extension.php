@@ -7,7 +7,7 @@ use Event;
 use Igniter\Flame\Exception\ApplicationException;
 use Omnipay\Omnipay;
 use System\Classes\BaseExtension;
-use Thoughtco\Notifier\Events\OrderCreated;
+use Thoughtco\OrderApprover\Events\OrderCreated;
 
 /**
  * StripeAuthorize Extension Information File
@@ -22,14 +22,8 @@ class Extension extends BaseExtension
             Event::dispatch(new OrderCreated($order));   
         });
         
-        // stripe payment capture method should be manual
-        // this wont be necessary when stripe authorise + capture is merged to payregister
-        Event::listen('payregister.stripe.extendFields', function ($gateway, &$fields, $order, $data) {
-            $fields['capture_method'] = 'manual';
-        });
-        
-        // order accepted through notifier extension - accept payment
-        Event::listen('thoughtco.notifier.orderAccepted', function ($notifier, $order) {
+        // order accepted through orderApprover extension - accept payment
+        Event::listen('thoughtco.orderApprover.orderAccepted', function ($notifier, $order) {
             
             $order = Orders_model::with(['payment_logs', 'payment_method'])->find($order->order_id);
             
@@ -52,8 +46,8 @@ class Extension extends BaseExtension
             $order->logPaymentAttempt('Payment capture failed -> '.$response->getMessage(), 0, [], $response->getData());
         }); 
         
-        // order rejected through notifier extension - cancel payment
-        Event::listen('thoughtco.notifier.orderRejected', function ($notifier, $order) {
+        // order rejected through orderApprover extension - cancel payment
+        Event::listen('thoughtco.orderApprover.orderRejected', function ($notifier, $order) {
             
             $order = Orders_model::with(['payment_logs', 'payment_method'])->find($order->order_id);
             
