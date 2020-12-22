@@ -3,6 +3,7 @@
 namespace Thoughtco\StripeAuthorize;
 
 use Admin\Models\Orders_model;
+use Admin\Models\Payments_model;
 use Event;
 use Igniter\Flame\Exception\ApplicationException;
 use Omnipay\Omnipay;
@@ -16,10 +17,15 @@ class Extension extends BaseExtension
 {
     public function boot()
     {
-        // dispatch any orders with default stripe status
-        Orders_model::where('status_id', 1)
-        ->each(function($order){
-            Event::dispatch(new OrderCreated($order));   
+        Payments_model::where('class_name', 'Igniter\PayRegister\Payments\Stripe')
+        ->each(function($payment) {
+
+            // dispatch any orders with default stripe status
+            Orders_model::where('status_id', $payment->data['order_status'])
+            ->each(function($order){
+                Event::dispatch(new OrderCreated($order));   
+            });
+        
         });
         
         // order accepted through orderApprover extension - accept payment
