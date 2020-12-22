@@ -17,7 +17,10 @@ class Extension extends BaseExtension
 {
     public function boot()
     {
-        Payments_model::where('class_name', 'Igniter\PayRegister\Payments\Stripe')
+        Payments_model::where([
+            'class_name' => 'Igniter\PayRegister\Payments\Stripe',
+            'status' => 1
+        ])
         ->each(function($payment) {
 
             // dispatch any orders with default stripe status
