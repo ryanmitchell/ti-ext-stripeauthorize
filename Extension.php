@@ -2,6 +2,7 @@
 
 namespace Thoughtco\StripeAuthorize;
 
+use AdminAuth;
 use Admin\Models\Orders_model;
 use Admin\Models\Payments_model;
 use Event;
@@ -17,16 +18,23 @@ class Extension extends BaseExtension
 {
     public function boot()
     {
-        Payments_model::where([
-            'class_name' => 'Igniter\PayRegister\Payments\Stripe',
-            'status' => 1
-        ])
-        ->each(function($payment) {
-
-            // dispatch any orders with default stripe status
-            Orders_model::where('status_id', $payment->data['order_status'])
-            ->each(function($order){
-                Event::dispatch(new OrderCreated($order));   
+        
+        Event::listen('admin.controller.beforeResponse', function ($controller, $params){
+        
+    		if (!AdminAuth::isLogged() OR !$controller->getLocationId()) return;
+            
+            Payments_model::where([
+                'class_name' => 'Igniter\PayRegister\Payments\Stripe',
+                'status' => 1
+            ])
+            ->each(function($payment) {
+    
+                // dispatch any orders with default stripe status
+                Orders_model::where('status_id', $payment->data['order_status'])
+                ->each(function($order){
+                    Event::dispatch(new OrderCreated($order));   
+                });
+            
             });
         
         });
