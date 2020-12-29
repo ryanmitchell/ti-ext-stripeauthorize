@@ -21,7 +21,7 @@ class Extension extends BaseExtension
         
         Event::listen('admin.controller.beforeResponse', function ($controller, $params){
         
-    		if (!AdminAuth::isLogged() OR !$controller->getLocationId()) return;
+            if (!AdminAuth::isLogged() OR !$controller->getLocationId()) return;
             
             Payments_model::where([
                 'class_name' => 'Igniter\PayRegister\Payments\Stripe',
