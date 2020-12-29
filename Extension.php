@@ -47,7 +47,7 @@ class Extension extends BaseExtension
             if (!$this->isStripeOrder($order))
                 return;
         
-            $intentId = getIntentFromOrder($order);
+            $intentId = $this->getIntentFromOrder($order);
 
             $gateway = $this->createGateway($order->payment_method);
                         
@@ -71,7 +71,7 @@ class Extension extends BaseExtension
             if (!$this->isStripeOrder($order))
                 return;
                 
-            $intentId = getIntentFromOrder($order);
+            $intentId = $this->getIntentFromOrder($order);
 
             $gateway = $this->createGateway($order->payment_method);
                         
