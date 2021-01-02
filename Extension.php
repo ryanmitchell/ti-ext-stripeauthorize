@@ -112,6 +112,7 @@ class Extension extends BaseExtension
     {
         $gateway = Omnipay::create('Stripe\PaymentIntents');
         $gateway->setApiKey($paymentMethod->transaction_mode != 'live' ? $paymentMethod->test_secret_key : $paymentMethod->live_secret_key);
+        return $gateway;
     }
     
 }
