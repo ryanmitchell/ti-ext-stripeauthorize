@@ -30,7 +30,10 @@ class Extension extends BaseExtension
             ->each(function($payment) {
     
                 // dispatch any orders with default stripe status
-                Orders_model::where('status_id', $payment->data['order_status'])
+                Orders_model::where([
+                    'status_id' => $payment->data['order_status'],
+                    'payment' => $payment->code,
+                ])
                 ->each(function($order){
                     Event::dispatch(new OrderCreated($order));   
                 });
