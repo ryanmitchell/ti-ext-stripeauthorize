@@ -28,6 +28,9 @@ class Extension extends BaseExtension
                 'status' => 1
             ])
             ->each(function($payment) {
+                
+                if (!$payment->data)
+                    return;
     
                 // dispatch any orders with default stripe status
                 Orders_model::where([
