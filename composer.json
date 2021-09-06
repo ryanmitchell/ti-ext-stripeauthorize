@@ -3,6 +3,6 @@
   "type": "tastyigniter-extension",
   "keywords": ["stripe"],
   "require": {
-    "stripe/stripe-php": "~7.93.0",
+    "stripe/stripe-php": "~7.93.0"
   }
 }
