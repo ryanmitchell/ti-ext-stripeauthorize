@@ -7,7 +7,7 @@ use Admin\Models\Orders_model;
 use Admin\Models\Payments_model;
 use Event;
 use Igniter\Flame\Exception\ApplicationException;
-use Omnipay\Omnipay;
+use Stripe\StripeClient;
 use System\Classes\BaseExtension;
 use Thoughtco\OrderApprover\Events\OrderCreated;
 
@@ -56,17 +56,21 @@ class Extension extends BaseExtension
             $intentId = $this->getIntentFromOrder($order);
 
             $gateway = $this->createGateway($order->payment_method);
+            
+            try {
                         
-            $response = $gateway->capture([
-                'paymentIntentReference' => $intentId,
-            ])->send();
+                $response = $gateway->paymentIntents->capture($intentId, []);
                             
-            if ($response->isSuccessful()) {
-                $order->logPaymentAttempt('Payment captured successfully', 1, [], $response->getData());
-                return;
+                if ($response->status == 'succeeded') {
+                    $order->logPaymentAttempt('Payment captured successfully', 1, [], $response);
+                    return;
+                }
+                
+                throw new Exception('Status '.$response->status);
+            
+            } catch (Exception $e) {
+                $order->logPaymentAttempt('Payment capture failed -> '.$e->getMessage(), 0, [], $response);
             }
-    
-            $order->logPaymentAttempt('Payment capture failed -> '.$response->getMessage(), 0, [], $response->getData());
         }); 
         
         // order rejected through orderApprover extension - cancel payment
@@ -80,18 +84,21 @@ class Extension extends BaseExtension
             $intentId = $this->getIntentFromOrder($order);
 
             $gateway = $this->createGateway($order->payment_method);
+            
+            try {
                         
-            $response = $gateway->cancel([
-                'paymentIntentReference' => $intentId,
-            ])->send();
-                            
-            $data = $response->getData();
-            if (array_get($data, 'status') === 'canceled') {
-                $order->logPaymentAttempt('Payment cancelled successfully', 1, [], $data);
-                return;
-            }
-    
-            $order->logPaymentAttempt('Payment cancellation failed -> '.$response->getMessage(), 0, [], $data);
+                $response = $gateway->paymentIntents->cancel($intentId, []);
+                        
+                if ($response->status == 'canceled') {
+                    $order->logPaymentAttempt('Payment cancelled successfully', 1, [], $response);
+                    return;
+                }
+                
+                throw new Exception('Status '.$response->status);
+            
+            } catch (Exception $e) {
+                $order->logPaymentAttempt('Payment cancellation failed -> '.$e->getMessage(), 0, [], $response);
+            }    
             
         });                
     }
@@ -116,8 +123,10 @@ class Extension extends BaseExtension
     
     protected function createGateway($paymentMethod)
     {
-        $gateway = Omnipay::create('Stripe\PaymentIntents');
-        $gateway->setApiKey($paymentMethod->transaction_mode != 'live' ? $paymentMethod->test_secret_key : $paymentMethod->live_secret_key);
+        $gateway = new StripeClient([
+            'api_key' => $paymentMethod->transaction_mode != 'live' ? $paymentMethod->test_secret_key : $paymentMethod->live_secret_key,
+        ]);
+       
         return $gateway;
     }
     

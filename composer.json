@@ -1,0 +1,8 @@
+{
+  "name": "thoughtco/ti-ext-stripeauthorize",
+  "type": "tastyigniter-extension",
+  "keywords": ["stripe"],
+  "require": {
+    "stripe/stripe-php": "~7.93.0",
+  }
+}
