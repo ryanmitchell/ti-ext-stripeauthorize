@@ -2,7 +2,7 @@
   "code": "thoughtco.stripeauthorize",
   "name": "Stripe Authorize",
   "description": "Listen for Order Approver events to capture or cancel Stripe payments",
-  "version": "v1.1.0",
+  "version": "v1.1.1",
   "author": "ryanmitchell",
   "icon": {
     "class": "fa fa-funnel-dollar",
