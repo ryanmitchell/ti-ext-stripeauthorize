@@ -1,8 +1,29 @@
 {
   "name": "thoughtco/ti-ext-stripeauthorize",
+  "license": "MIT",
+  "description": "Allow for printing of order dockets though USB (ESC/P), IP/Network Printing (ESC/P) or Epson ePOS network web service.",
   "type": "tastyigniter-extension",
   "keywords": ["stripe"],
   "require": {
     "stripe/stripe-php": "~7.93.0"
-  }
+  },
+   "authors": [
+     {
+       "name": "Ryan Mitchell",
+       "email": "ryan@thoughtcollective.com"
+     }
+   ],
+   "extra": {
+     "tastyigniter-extension": {
+       "code": "thoughtco.stripeauthorize",
+       "name": "Stripe Authorize",
+       "icon": {
+         "class": "fa fa-funnel-dollar",
+         "color": "#FFF",
+         "backgroundColor": "#111"
+       },
+       "homepage": "https://github.com/ryanmitchell/ti-ext-stripeauthorize",
+       "require": {}
+     }
+   }
 }
