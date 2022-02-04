@@ -47,6 +47,10 @@ class Extension extends BaseExtension
                 return;
 
             $intentId = $this->getIntentFromOrder($order);
+            
+            if (!$intentId) {
+                return;
+            }
 
             $order->payment_method->capturePaymentIntent($intentId, $order);
         });
@@ -59,6 +63,10 @@ class Extension extends BaseExtension
                 return;
 
             $intentId = $this->getIntentFromOrder($order);
+            
+            if (!$intentId) {
+                return;
+            }
 
             $order->payment_method->cancelPaymentIntent($intentId, $order);
         });
@@ -78,7 +86,5 @@ class Extension extends BaseExtension
                     return $intentId;
             }
         }
-
-        throw new ApplicationException('Missing Stripe Intent ID');
     }
 }
