@@ -18,7 +18,7 @@ class Extension extends BaseExtension
     public function boot()
     {
         Event::listen('admin.controller.beforeResponse', function ($controller, $params) {
-            if (!AdminAuth::isLogged() OR !$controller->getLocationId()) return;
+            if (!AdminAuth::isLogged() or !$controller->getLocationId()) return;
 
             Payments_model::where([
                 'class_name' => 'Igniter\PayRegister\Payments\Stripe',
@@ -43,11 +43,8 @@ class Extension extends BaseExtension
         Event::listen('thoughtco.orderApprover.orderAccepted', function ($notifier, $order) {
             $order = Orders_model::with(['payment_logs', 'payment_method'])->find($order->order_id);
 
-            if (!$this->isStripeOrder($order))
-                return;
-
             $intentId = $this->getIntentFromOrder($order);
-            
+
             if (!$intentId) {
                 return;
             }
@@ -59,11 +56,8 @@ class Extension extends BaseExtension
         Event::listen('thoughtco.orderApprover.orderRejected', function ($notifier, $order) {
             $order = Orders_model::with(['payment_logs', 'payment_method'])->find($order->order_id);
 
-            if (!$this->isStripeOrder($order))
-                return;
-
             $intentId = $this->getIntentFromOrder($order);
-            
+
             if (!$intentId) {
                 return;
             }
@@ -77,14 +71,25 @@ class Extension extends BaseExtension
         return isset($order->payment_method) && $order->payment_method->class_name == 'Igniter\PayRegister\Payments\Stripe';
     }
 
+    protected function isStripeCheckoutOrder($order)
+    {
+        return isset($order->payment_method) &&
+            ($order->payment_method->class_name == 'Phil\MultiStripe\Payments\MultiStripeCheckout'
+                || $order->payment_method->class_name == 'Igniter\PayRegister\Payments\StripeCheckout');
+    }
+
     protected function getIntentFromOrder($order)
     {
+
         foreach ($order->payment_logs as $paymentLog) {
-            if (array_get($paymentLog->response, 'status') === 'requires_capture') {
+            if ($this->isStripeOrder($order) && array_get($paymentLog->response, 'status') === 'requires_capture') {
                 $intentId = array_get($paymentLog->response, 'id');
-                if ($intentId)
-                    return $intentId;
+            } else if ($this->isStripeCheckoutOrder($order) && array_get($paymentLog->response, 'payment_status') === "unpaid") {
+                $intentId = array_get($paymentLog->response, 'payment_intent');
             }
+
+            if ($intentId) return $intentId;
+            
         }
     }
 }
